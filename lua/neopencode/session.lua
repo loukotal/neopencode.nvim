@@ -33,8 +33,8 @@ function M.select_session()
       end
     end)
 
-    local session_options = {}
-    local session_map = {}
+    local session_options = { "New Session" }
+    local session_map = { ["New Session"] = "new_session" }
     for _, session in ipairs(sessions) do
       local display_text = session.id
       if session.title and session.title ~= "" then
@@ -53,6 +53,10 @@ function M.select_session()
       end,
     }, function(choice)
       if choice then
+        if session_map[choice] == "new_session" then
+          M.create_session()
+          return
+        end
         local session_id = session_map[choice]
         M.current_session_id = session_id
         vim.notify("Switched to neopencode session: " .. session_id)
@@ -71,29 +75,45 @@ function M.create_session(callback)
   local command = {
     "curl",
     "-s",
+    "-v",
     "-X",
     "POST",
     "-H",
     "Content-Type: application/json",
+    "-d",
+    "{}",
     url,
   }
 
+  local stderr_lines = {}
   vim.fn.jobstart(command, {
     on_stdout = function(_, data)
       if data and #data > 0 then
         local response_str = table.concat(data, "")
         if response_str == "" then return end
-        local session = vim.fn.json_decode(response_str)
-        M.current_session_id = session.id
-        vim.notify("Created and switched to new neopencode session: " .. session.id)
-        if callback then
-          callback(session.id)
+        local ok, session = pcall(vim.fn.json_decode, response_str)
+        if ok then
+          M.current_session_id = session.id
+          vim.notify("Created and switched to new neopencode session: " .. session.id)
+          if callback then
+            callback(session.id)
+          end
+        else
+          require("neopencode.actions").log_error("JSON decode error: " .. session .. "\n\nResponse:\n" .. response_str)
         end
       end
     end,
     on_stderr = function(_, data)
-      if data and #data > 0 then
-        require("neopencode.actions").log_error("Error creating session: " .. table.concat(data, "\n"))
+      if data then
+        for _, line in ipairs(data) do
+          table.insert(stderr_lines, line)
+        end
+      end
+    end,
+    on_exit = function(_, code)
+      if code ~= 0 then
+        local error_message = "curl command failed with exit code: " .. code .. "\n\nStderr:\n" .. table.concat(stderr_lines, "\n")
+        require("neopencode.actions").log_error(error_message)
       end
     end,
   })

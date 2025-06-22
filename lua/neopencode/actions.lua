@@ -9,18 +9,17 @@ local M = {}
 
 function M.send_file()
   if not session.current_session_id then
-    actions.log_error("No neopencode session selected. Please run :OpencodeSelectSession")
+    M.log_error("No neopencode session selected. Please run :OpencodeSelectSession")
     return
   end
 
   local file_path = vim.fn.expand("%:p")
   if file_path == "" then
-    actions.log_error("No file name.")
+    M.log_error("No file name.")
     return
   end
 
-  local file_content = table.concat(vim.api.nvim_buf_get_lines(0, 0, -1, false), "\n")
-  local default_text = "File: " .. file_path .. "\n\n" .. file_content
+  local default_text = "File: " .. vim.fn.expand("%")
 
   ui.input({
     prompt = "Prompt for " .. file_path,
@@ -30,27 +29,28 @@ function M.send_file()
       return
     end
     -- The entire content of the window is the prompt.
-    api.send_chat(session.current_session_id, prompt, nil, file_path)
+    api.send_chat(session.current_session_id, prompt, nil, vim.fn.expand("%"))
   end)
 end
 
 function M.send_selection(start_line, end_line)
   if not session.current_session_id then
-    actions.log_error("No neopencode session selected. Please run :OpencodeSelectSession")
+    M.log_error("No neopencode session selected. Please run :OpencodeSelectSession")
     return
   end
 
-  local file_path = vim.fn.expand("%:p")
+  local file_path = vim.fn.expand("%")
   if file_path == "" then
-    actions.log_error("No file name.")
+    M.log_error("No file name.")
     return
   end
 
   local selected_lines = vim.api.nvim_buf_get_lines(0, start_line - 1, end_line, false)
-  local selection_content = table.concat(selected_lines, "\n")
+  local selected_text = table.concat(selected_lines, "\n")
 
   local prompt_text = "Prompt for " .. file_path .. " L" .. start_line .. ":L" .. end_line
-  local default_text = "File: " .. file_path .. " L" .. start_line .. ":L" .. end_line .. "\n\n" .. selection_content
+  local file_info = "File: " .. file_path .. " L" .. start_line .. ":L" .. end_line
+  local default_text = file_info .. "\n" .. selected_text
 
   ui.input({
     prompt = prompt_text,
@@ -60,7 +60,7 @@ function M.send_selection(start_line, end_line)
       return
     end
     -- The entire content of the window is the prompt.
-    api.send_chat(session.current_session_id, prompt, nil, file_path)
+    api.send_chat(session.current_session_id, prompt, nil, file_path .. ":" .. start_line .. "-" .. end_line)
   end)
 end
 
