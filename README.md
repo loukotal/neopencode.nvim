@@ -17,7 +17,11 @@ Name is not great, but didn't want to sit on `opencode.nvim`
 ## Small demo
 
 
-https://github.com/user-attachments/assets/d954095c-635d-4876-9f6e-0cbf28946fac
+
+
+https://github.com/user-attachments/assets/18173f5b-eea8-4895-904c-1ff8cd95fb34
+
+
 
 
 
