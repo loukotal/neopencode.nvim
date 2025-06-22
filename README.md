@@ -35,7 +35,12 @@ use {
 {
   "loukotal/neopencode.nvim",
   config = function()
-    require("neopencode.main").setup()
+    require("neopencode.main").setup({
+      -- follows https://models.dev/
+      -- needs to be setup in opencode
+      provider_id = "google",
+      model_id = "gemini-2.5-pro-preview-06-05",
+    })
   end,
 }
 ```
@@ -51,10 +56,15 @@ use {
 You can configure the plugin by calling the `setup` function.
 
 ```lua
-require("neopencode.main").setup().setup({
+require("neopencode.main").setup({
   provider_id = "google",
-  model_id = "gemini-1.5-pro-preview-0514",
+  model_id = "gemini-2.5-pro-preview-06-05",
 })
 ```
 
+## TODOs
 
+- [ ] better session picking
+- [ ] there should not be a setup for the model, it should use whatever the session was using
+- [ ] there should be a way to select a model that is set up in opencode - so you can use a different model for each message when needed
+- [ ] creating a new session does not update opencode ui and the session needs to be selected in opencode
