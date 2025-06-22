@@ -1,0 +1,11 @@
+# Personal notes and temporary files
+AGENTS.md
+claudecode.nvim-ingest
+plan.md
+project.md
+scratchpad.md
+
+# Vim/Neovim swap files
+*.swp
+*.swo
+*.swn

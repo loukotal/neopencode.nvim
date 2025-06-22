@@ -1,0 +1,31 @@
+*neopencode.txt*                                     For Neovim version 0.8.0 and later
+
+==============================================================================
+CONTENTS                                                      *neopencode*
+
+  1. Introduction.........................................|neopencode-introduction|
+  2. Commands.............................................|neopencode-commands|
+
+==============================================================================
+INTRODUCTION                                          *neopencode-introduction*
+
+`neopencode.nvim` is a plugin for interacting with the opencode.ai tui. you can
+send messages to selected sessions, file or selected lines of code. 
+Warning: entirely written by neopencode and Gemini 2.5 Pro 
+==============================================================================
+COMMANDS                                                      *neopencode-commands*
+
+*:OpencodeSelectSession*
+Select an active neopencode.ai session to work with. This will present you with
+a list of running sessions to choose from.
+
+*:OpencodeFile*
+Send the filename of the current buffer to the selected neopencode.ai session +
+additional prompt.
+
+*:OpencodeSelect*
+Send the currently selected lines of code for the LLM to read in Ln:Ln+m
+format.
+
+==============================================================================
+vim:tw=78:ts=8:ft=help:norl:
