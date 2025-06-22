@@ -24,7 +24,7 @@ Use your favorite plugin manager.
 use {
   "loukotal/neopencode.nvim",
   config = function()
-    require("neopencode.main")
+    require("neopencode.main").setup()
   end,
 }
 ```
@@ -35,7 +35,7 @@ use {
 {
   "loukotal/neopencode.nvim",
   config = function()
-    require("neopencode.main")
+    require("neopencode.main").setup()
   end,
 }
 ```
@@ -51,9 +51,10 @@ use {
 You can configure the plugin by calling the `setup` function.
 
 ```lua
-require("neopencode.main").setup({
-  -- your configuration options here
+require("neopencode.main").setup().setup({
+  provider_id = "google",
+  model_id = "gemini-1.5-pro-preview-0514",
 })
 ```
 
-(No configuration options are available yet.)
+

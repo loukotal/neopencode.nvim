@@ -2,7 +2,10 @@
 
 local M = {}
 
-function M.setup()
+function M.setup(options)
+  local config = require("neopencode.config")
+  config.options = vim.tbl_deep_extend("force", config.options, options or {})
+
   vim.api.nvim_create_user_command("OpencodeFile", function()
     require("neopencode.actions").send_file()
   end, {
@@ -25,7 +28,5 @@ function M.setup()
     desc = "Select an neopencode.ai session",
   })
 end
-
-M.setup()
 
 return M

@@ -3,11 +3,9 @@
 local server = require("neopencode.server")
 local util = require("neopencode.util")
 
+local config = require("neopencode.config")
+
 local M = {}
-
-local provider_id = "google"
-local model_id = "gemini-2.5-pro-preview-05-06"
-
 
 function M.list_sessions(callback)
   local port = server.get_port_from_pid()
@@ -65,8 +63,8 @@ function M.send_chat(session_id, prompt, content, file_path)
   local url = "http://localhost:" .. port .. "/session_chat"
   local body = {
     sessionID = session_id,
-    providerID = provider_id,
-    modelID = model_id,
+    providerID = config.get("provider_id"),
+    modelID = config.get("model_id"),
     parts = {
       { type = "text", text = prompt },
     },
