@@ -14,6 +14,13 @@ Name is not great, but didn't want to sit on `opencode.nvim`
 - Send the current filename to an opencode.ai session.
 - Send the selected lines to an opencode.ai session.
 
+## Small demo
+
+
+https://github.com/user-attachments/assets/d954095c-635d-4876-9f6e-0cbf28946fac
+
+
+
 ## Installation
 
 Use your favorite plugin manager.
