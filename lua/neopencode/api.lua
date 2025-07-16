@@ -1,24 +1,53 @@
 -- lua/neopencode/api.lua
 
 local server = require("neopencode.server")
-local util = require("neopencode.util")
 
 local config = require("neopencode.config")
 
 local M = {}
 
 function M.list_sessions(callback)
-  local port = server.get_port_from_pid()
-  if not port then
+  local pids = server.get_all_pids()
+  if #pids == 0 then
+    callback({})
     return
   end
 
-  local url = "http://localhost:" .. port .. "/session_list"
+  local all_sessions = {}
+  local completed_requests = 0
+
+  for _, pid in ipairs(pids) do
+    local port = server.get_port(pid)
+    if port then
+      M._list_sessions_with_port(port, function(sessions)
+        -- Add port info to each session
+        for _, session in ipairs(sessions or {}) do
+          session._port = port
+          session._pid = pid
+          table.insert(all_sessions, session)
+        end
+
+        completed_requests = completed_requests + 1
+        if completed_requests == #pids then
+          callback(all_sessions)
+        end
+      end)
+    else
+      completed_requests = completed_requests + 1
+      if completed_requests == #pids then
+        callback(all_sessions)
+      end
+    end
+  end
+end
+
+function M._list_sessions_with_port(port, callback)
+  local url = "http://localhost:" .. port .. "/session"
   local command = {
     "curl",
     "-s",
     "-X",
-    "POST",
+    "GET",
     "-H",
     "Content-Type: application/json",
     url,
@@ -34,7 +63,7 @@ function M.list_sessions(callback)
         if ok then
           callback(sessions)
         else
-          require("neopencode.actions").log_error("JSON decode error: " .. sessions .. "\n\nResponse:\n" .. response_str)
+          vim.notify("JSON decode error: " .. sessions, vim.log.levels.ERROR)
         end
       end
     end,
@@ -47,39 +76,43 @@ function M.list_sessions(callback)
     end,
     on_exit = function(_, code)
       if code ~= 0 then
-        local error_message = "curl command failed with exit code: " .. code .. "\n\nStderr:\n" .. table.concat(stderr_lines, "\n")
-        require("neopencode.actions").log_error(error_message)
+        local error_message = "curl command failed with exit code: " ..
+            code .. "\n\nStderr:\n" .. table.concat(stderr_lines, "\n")
+        vim.notify(error_message, vim.log.levels.ERROR)
       end
     end,
   })
 end
 
-function M.send_chat(session_id, prompt, content, file_path)
-  local port = server.get_port_from_pid()
-  if not port then
-    return
-  end
+function M.send_chat(session_id, prompt)
+  local session = require("neopencode.session").current_session
 
-  local url = "http://localhost:" .. port .. "/session_chat"
+  if session and session._port then
+    M._send_chat_with_port(session._port, session_id, prompt)
+  else
+    vim.notify("No session selected or session port unknown", vim.log.levels.ERROR)
+  end
+end
+
+function M._send_chat_with_port(port, session_id, prompt)
+  local url = "http://localhost:" .. port .. "/session/" .. session_id .. "/message"
+  local message_id = vim.fn.system("uuidgen"):gsub("\n", "")
   local body = {
-    sessionID = session_id,
+    messageID = message_id,
     providerID = config.get("provider_id"),
     modelID = config.get("model_id"),
-    parts = {
-      { type = "text", text = prompt },
-    },
+    mode = "build",
+    parts = {},
   }
 
-  if file_path then
+  if prompt then
     body.parts[#body.parts + 1] = {
-      type = "file",
-      mediaType = util.get_media_type(file_path),
-      url = "file://" .. file_path,
+      type = "text",
+      id = vim.fn.system("uuidgen"):gsub("\n", ""),
+      sessionID = session_id,
+      messageID = message_id,
+      text = prompt
     }
-  end
-
-  if content then
-    body.parts[#body.parts + 1] = { type = "text", text = content }
   end
 
   local command = {
@@ -93,8 +126,8 @@ function M.send_chat(session_id, prompt, content, file_path)
     vim.fn.json_encode(body),
     url,
   }
-
   local stderr_lines = {}
+
   vim.fn.jobstart(command, {
     on_stdout = function(_, data)
       if data and #data > 0 then
@@ -112,7 +145,7 @@ function M.send_chat(session_id, prompt, content, file_path)
           end
           require("neopencode.actions").display_response(message_content)
         else
-          require("neopencode.actions").log_error("JSON decode error: " .. response .. "\n\nResponse:\n" .. response_str)
+          vim.notify("JSON decode error: " .. response, vim.log.levels.ERROR)
         end
       end
     end,
@@ -125,8 +158,9 @@ function M.send_chat(session_id, prompt, content, file_path)
     end,
     on_exit = function(_, code)
       if code ~= 0 then
-        local error_message = "curl command failed with exit code: " .. code .. "\n\nStderr:\n" .. table.concat(stderr_lines, "\n")
-        require("neopencode.actions").log_error(error_message)
+        local error_message = "curl command failed with exit code: " ..
+            code .. "\n\nStderr:\n" .. table.concat(stderr_lines, "\n")
+        vim.notify(error_message, vim.log.levels.ERROR)
       end
     end,
   })

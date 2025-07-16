@@ -8,7 +8,7 @@ local M = {}
 
 
 function M.send_file()
-  if not session.current_session_id then
+  if not session.current_session then
     M.log_error("No neopencode session selected. Please run :OpencodeSelectSession")
     return
   end
@@ -19,22 +19,21 @@ function M.send_file()
     return
   end
 
-  local default_text = "File: " .. vim.fn.expand("%")
+  local filename = vim.fn.expand("%")
 
   ui.input({
-    prompt = "Prompt for " .. file_path,
-    default = default_text,
+    prompt = "Prompt for " .. filename,
+    default = "@" .. filename .. " ",
   }, function(prompt)
     if not prompt or prompt == "" then
       return
     end
-    -- The entire content of the window is the prompt.
-    api.send_chat(session.current_session_id, prompt, nil, vim.fn.expand("%"))
+    api.send_chat(session.current_session.id, prompt)
   end)
 end
 
 function M.send_selection(start_line, end_line)
-  if not session.current_session_id then
+  if not session.current_session then
     M.log_error("No neopencode session selected. Please run :OpencodeSelectSession")
     return
   end
@@ -49,8 +48,8 @@ function M.send_selection(start_line, end_line)
   local selected_text = table.concat(selected_lines, "\n")
 
   local prompt_text = "Prompt for " .. file_path .. " L" .. start_line .. ":L" .. end_line
-  local file_info = "File: " .. file_path .. " L" .. start_line .. ":L" .. end_line
-  local default_text = file_info .. "\n" .. selected_text
+
+  local default_text = "@" .. file_path .. "\n" .. selected_text .. "\n\n"
 
   ui.input({
     prompt = prompt_text,
@@ -59,8 +58,7 @@ function M.send_selection(start_line, end_line)
     if not prompt or prompt == "" then
       return
     end
-    -- The entire content of the window is the prompt.
-    api.send_chat(session.current_session_id, prompt, nil, file_path .. ":" .. start_line .. "-" .. end_line)
+    api.send_chat(session.current_session.id, prompt)
   end)
 end
 

@@ -4,8 +4,8 @@ local api = require("neopencode.api")
 
 local M = {}
 
--- This will hold the selected session ID for the current nvim session.
-M.current_session_id = nil
+-- This will hold the selected session info for the current nvim session.
+M.current_session = nil
 
 function M.select_session()
   api.list_sessions(function(sessions)
@@ -42,8 +42,14 @@ function M.select_session()
       elseif session.summary and session.summary ~= "" then
         display_text = session.summary .. " (" .. session.id .. ")"
       end
+
+      -- Add PID info to display text
+      if session._pid then
+        display_text = display_text .. " [PID: " .. session._pid .. "]"
+      end
+
       table.insert(session_options, display_text)
-      session_map[display_text] = session.id
+      session_map[display_text] = session
     end
 
     vim.ui.select(session_options, {
@@ -57,21 +63,23 @@ function M.select_session()
           M.create_session()
           return
         end
-        local session_id = session_map[choice]
-        M.current_session_id = session_id
-        vim.notify("Switched to neopencode session: " .. session_id)
+        local session = session_map[choice]
+        M.current_session = session
+        vim.notify("Switched to neopencode session: " ..
+          session.id .. " [PID: " .. (session._pid or "unknown") .. ", Port: " .. (session._port or "unknown") .. "]")
       end
     end)
   end)
 end
 
 function M.create_session(callback)
-  local port = require("neopencode.server").get_port_from_pid()
-  if not port then
-    return
-  end
+  require("neopencode.server").select_opencode_instance(function(port)
+    M._create_session_with_port(port, callback)
+  end)
+end
 
-  local url = "http://localhost:" .. port .. "/session_create"
+function M._create_session_with_port(port, callback)
+  local url = "http://localhost:" .. port .. "/session"
   local command = {
     "curl",
     "-s",
@@ -93,7 +101,9 @@ function M.create_session(callback)
         if response_str == "" then return end
         local ok, session = pcall(vim.fn.json_decode, response_str)
         if ok then
-          M.current_session_id = session.id
+          -- Add port info to the new session
+          session._port = port
+          M.current_session = session
           vim.notify("Created and switched to new neopencode session: " .. session.id)
           if callback then
             callback(session.id)
@@ -112,7 +122,8 @@ function M.create_session(callback)
     end,
     on_exit = function(_, code)
       if code ~= 0 then
-        local error_message = "curl command failed with exit code: " .. code .. "\n\nStderr:\n" .. table.concat(stderr_lines, "\n")
+        local error_message = "curl command failed with exit code: " ..
+            code .. "\n\nStderr:\n" .. table.concat(stderr_lines, "\n")
         require("neopencode.actions").log_error(error_message)
       end
     end,
